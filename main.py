@@ -9,6 +9,15 @@ st.set_page_config(
     layout="wide"
 )
 
+# Security warning
+st.warning("""
+⚠️ **Security Notice**
+- Keep this repl private if you plan to use it with real API keys
+- Never commit API keys to version control
+- The API key is only stored in memory during the session
+- Clear your browser cache after using this application
+""")
+
 # Custom CSS for better styling
 st.markdown("""
     <style>
@@ -32,14 +41,14 @@ def make_api_call(api_key: str, messages: list, temperature: float = 0) -> Dict[
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
-    
+
     payload = {
         "messages": messages,
         "model": "grok-2-latest",
         "stream": False,
         "temperature": temperature
     }
-    
+
     try:
         response = requests.post(
             "https://api.x.ai/v1/chat/completions",
@@ -59,23 +68,39 @@ def make_api_call(api_key: str, messages: list, temperature: float = 0) -> Dict[
 
 def main():
     st.title("🤖 Grok Chat Interface")
-    
+
+    # Security info expander
+    with st.expander("ℹ️ Security Information"):
+        st.markdown("""
+        This application handles API keys securely:
+        - API keys are never stored permanently
+        - Keys are only kept in memory during your session
+        - The input field is masked to protect your key
+        - No logging or storing of conversation history
+        - Clear your browser cache after use
+
+        **Best Practices:**
+        1. Keep this repl private
+        2. Don't share your API keys
+        3. Use environment variables for production deployments
+        """)
+
     # API Key input with secure password field
     api_key = st.text_input("Enter your xAI API Key", type="password")
-    
+
     # System message input
     system_message = st.text_area(
         "System Message (optional)",
         value="You are a helpful assistant.",
         help="This sets the behavior of the AI assistant"
     )
-    
+
     # User message input
     user_message = st.text_area(
         "Your Message",
         help="Enter your message to Grok"
     )
-    
+
     # Temperature slider
     temperature = st.slider(
         "Temperature",
@@ -85,7 +110,7 @@ def main():
         step=0.1,
         help="Higher values make the output more random, lower values make it more focused"
     )
-    
+
     if st.button("Send Message", disabled=not (api_key and user_message)):
         try:
             with st.spinner("Waiting for response..."):
@@ -99,27 +124,27 @@ def main():
                     "role": "user",
                     "content": user_message
                 })
-                
+
                 response = make_api_call(api_key, messages, temperature)
-                
+
                 # Display the response in a nice format
                 st.markdown("### Response")
                 st.markdown('<div class="api-response">', unsafe_allow_html=True)
-                
+
                 # Display the assistant's message
                 if response.get("choices") and len(response["choices"]) > 0:
                     assistant_message = response["choices"][0]["message"]["content"]
                     st.write(assistant_message)
-                
+
                 # Display full API response in an expander
                 with st.expander("View Full API Response"):
                     st.json(response)
-                
+
                 st.markdown('</div>', unsafe_allow_html=True)
-                
+
         except Exception as e:
             st.error(f"Error occurred: {str(e)}")
-            
+
     # Add usage instructions in an expander
     with st.expander("Usage Instructions"):
         st.markdown("""
@@ -128,7 +153,7 @@ def main():
         3. Enter your message in the message field
         4. Adjust the temperature if desired (0 for focused responses, higher for more creative ones)
         5. Click 'Send Message' to get a response
-        
+
         Note: Your API key is never stored and is only used for making the current request.
         """)
 
