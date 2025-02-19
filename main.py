@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import json
+import os
 from typing import Dict, Any
 
 st.set_page_config(
@@ -8,15 +9,6 @@ st.set_page_config(
     page_icon="🤖",
     layout="wide"
 )
-
-# Security warning
-st.warning("""
-⚠️ **Security Notice**
-- Keep this repl private if you plan to use it with real API keys
-- Never commit API keys to version control
-- The API key is only stored in memory during the session
-- Clear your browser cache after using this application
-""")
 
 # Custom CSS for better styling
 st.markdown("""
@@ -33,10 +25,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-def make_api_call(api_key: str, messages: list, temperature: float = 0) -> Dict[str, Any]:
+def make_api_call(messages: list, temperature: float = 0, model: str = "grok-2-latest") -> Dict[str, Any]:
     """
     Make an API call to xAI's Grok model
     """
+    api_key = os.getenv("XAI_API_KEY")
+    if not api_key:
+        raise Exception("XAI API key not found in environment variables")
+
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
@@ -44,7 +40,7 @@ def make_api_call(api_key: str, messages: list, temperature: float = 0) -> Dict[
 
     payload = {
         "messages": messages,
-        "model": "grok-2-latest",
+        "model": model,
         "stream": False,
         "temperature": temperature
     }
@@ -69,24 +65,12 @@ def make_api_call(api_key: str, messages: list, temperature: float = 0) -> Dict[
 def main():
     st.title("🤖 Grok Chat Interface")
 
-    # Security info expander
-    with st.expander("ℹ️ Security Information"):
-        st.markdown("""
-        This application handles API keys securely:
-        - API keys are never stored permanently
-        - Keys are only kept in memory during your session
-        - The input field is masked to protect your key
-        - No logging or storing of conversation history
-        - Clear your browser cache after use
-
-        **Best Practices:**
-        1. Keep this repl private
-        2. Don't share your API keys
-        3. Use environment variables for production deployments
-        """)
-
-    # API Key input with secure password field
-    api_key = st.text_input("Enter your xAI API Key", type="password")
+    # Model selection
+    model = st.text_input(
+        "Model",
+        value="grok-2-latest",
+        help="The xAI model to use for chat completions"
+    )
 
     # System message input
     system_message = st.text_area(
@@ -111,7 +95,7 @@ def main():
         help="Higher values make the output more random, lower values make it more focused"
     )
 
-    if st.button("Send Message", disabled=not (api_key and user_message)):
+    if st.button("Send Message", disabled=not user_message):
         try:
             with st.spinner("Waiting for response..."):
                 messages = []
@@ -125,7 +109,7 @@ def main():
                     "content": user_message
                 })
 
-                response = make_api_call(api_key, messages, temperature)
+                response = make_api_call(messages, temperature, model)
 
                 # Display the response in a nice format
                 st.markdown("### Response")
@@ -148,13 +132,11 @@ def main():
     # Add usage instructions in an expander
     with st.expander("Usage Instructions"):
         st.markdown("""
-        1. Enter your xAI API key in the secure input field
+        1. Optionally modify the model name (default: grok-2-latest)
         2. Optionally modify the system message to change the AI's behavior
         3. Enter your message in the message field
         4. Adjust the temperature if desired (0 for focused responses, higher for more creative ones)
         5. Click 'Send Message' to get a response
-
-        Note: Your API key is never stored and is only used for making the current request.
         """)
 
 if __name__ == "__main__":
