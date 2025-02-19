@@ -1,4 +1,5 @@
 git clone https://github.com/tom-doerr/grok-chat-interface.git
+cd grok-chat-interface
 ```
 
 2. Install dependencies:
